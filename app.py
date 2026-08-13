@@ -1,626 +1,509 @@
-import io
-import os
-import shutil
-import subprocess
-import tempfile
 import streamlit as st
-from PIL import Image
 from rembg import remove
-
-# Try importing pdf2docx for better PDF to Word handling
-try:
-  from pdf2docx import Converter
-
-  HAS_PDF2DOCX = True
-except ImportError:
-  HAS_PDF2DOCX = False
-
+from PIL import Image
+import io
+import subprocess
+import os
+import tempfile
+import shutil
 
 # ---------- Helper: find LibreOffice on any OS ----------
 def find_soffice():
-  """Return a runnable soffice command, checking PATH then common install locations."""
-  if shutil.which('soffice'):
-    return 'soffice'
-  common_paths = [
-      r'C:\Program Files\LibreOffice\program\soffice.exe',
-      r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
-      '/usr/bin/soffice',
-      '/opt/libreoffice/program/soffice',
-      '/Applications/LibreOffice.app/Contents/MacOS/soffice',
-  ]
-  for path in common_paths:
-    if os.path.exists(path):
-      return path
-  return None
-
+    """Return a runnable soffice command, checking PATH then common install locations."""
+    if shutil.which("soffice"):
+        return "soffice"
+    common_paths = [
+        r"C:\Program Files\LibreOffice\program\soffice.exe",
+        r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+        "/usr/bin/soffice",
+        "/opt/libreoffice/program/soffice",
+        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+    ]
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError("soffice not found")
 
 # ---------- Page setup ----------
 st.set_page_config(
-    page_title='Rays AI - Suite',
-    page_icon='⚡',
-    layout='centered',
-    initial_sidebar_state='expanded',
+    page_title="Rays AI - Suite & Portals",
+    page_icon="⚡",
+    layout="centered",
+    initial_sidebar_state="expanded",
 )
 
-
-# ---------- Simple password gate ----------
+# ---------- Password Protection ----------
 def check_password():
-  """Show a branded welcome + password box; only let the rest of the app render if correct."""
+    """Show a branded welcome + password box; only let the rest of the app render if correct."""
 
-  def password_entered():
-    if st.session_state.get('password_input') == st.secrets.get(
-        'APP_PASSWORD', ''
-    ):
-      st.session_state['password_correct'] = True
-      del st.session_state['password_input']
-    else:
-      st.session_state['password_correct'] = False
+    def password_entered():
+        if st.session_state.get("password_input") == st.secrets.get("APP_PASSWORD", "raysai123"):
+            st.session_state["password_correct"] = True
+            if "password_input" in st.session_state:
+                del st.session_state["password_input"]
+        else:
+            st.session_state["password_correct"] = False
 
-  if st.session_state.get('password_correct', False):
-    return True
+    if st.session_state.get("password_correct", False):
+        return True
 
-  st.markdown(
-      """
+    st.markdown("""
         <style>
         .stApp {
-            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            background: radial-gradient(circle at top, #1a1a2e 0%, #0F0F13 65%);
         }
         .welcome-wrap {
             text-align: center;
-            padding-top: 5rem;
+            padding-top: 3rem;
         }
         .welcome-logo {
-            font-size: 3.5rem;
-            margin-bottom: 0.3rem;
-            filter: drop-shadow(0 0 15px rgba(127, 90, 240, 0.6));
+            font-size: 4.5rem;
+            margin-bottom: 0.1rem;
+            text-shadow: 0 0 20px rgba(127,90,240,0.6);
         }
         .welcome-title {
-            font-size: 2.4rem;
+            font-size: 2.8rem;
             font-weight: 800;
-            color: #FFFFFF;
+            color: #FFFFFE;
             margin-bottom: 0.2rem;
         }
         .welcome-title span {
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            background: linear-gradient(90deg, #7F5AF0, #2CB67D);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .welcome-sub {
-            color: #94a3b8;
-            font-size: 1rem;
+            color: #9CA3AF;
+            font-size: 1.1rem;
             margin-bottom: 2rem;
         }
         </style>
         <div class="welcome-wrap">
             <div class="welcome-logo">⚡</div>
-            <div class="welcome-title">Welcome to <span>Rays AI</span></div>
-            <div class="welcome-sub">Enter password to continue</div>
+            <div class="welcome-title">Welcome to <span>RAYS AI</span></div>
+            <div class="welcome-sub">Enter password to unlock dashboard</div>
         </div>
-    """,
-      unsafe_allow_html=True,
-  )
+    """, unsafe_allow_html=True)
 
-  col1, col2, col3 = st.columns([1, 2, 1])
-  with col2:
-    st.text_input(
-        'Password',
-        type='password',
-        key='password_input',
-        on_change=password_entered,
-        label_visibility='collapsed',
-        placeholder='Enter password',
-    )
-    if (
-        'password_correct' in st.session_state
-        and not st.session_state['password_correct']
-    ):
-      st.error('Incorrect password.')
-  return False
-
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.text_input(
+            "Password",
+            type="password",
+            key="password_input",
+            on_change=password_entered,
+            label_visibility="collapsed",
+            placeholder="Enter access key...",
+        )
+        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+            st.error("❌ Incorrect password.")
+    return False
 
 if not check_password():
-  st.stop()
+    st.stop()
 
-
-# ---------- Custom Premium Glassmorphism Theme & Wallpaper CSS ----------
-st.markdown(
-    """
+# ---------- Styling (CSS) ----------
+st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Background Wallpaper & Glow FX */
     .stApp {
-        background-color: #0b0f19;
-        background-image: 
-            radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(129, 140, 248, 0.12) 0px, transparent 50%),
-            radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.8) 0px, transparent 100%);
-        background-attachment: fixed;
+        background: radial-gradient(circle at top left, #1a1a2e 0%, #0F0F13 60%);
     }
 
-    /* ---- Navbar ---- */
+    /* Navbar */
     .navbar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 1rem 1.2rem;
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        margin-bottom: 2rem;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        margin-bottom: 1.5rem;
     }
     .navbar-logo {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: #FFFFFF;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        font-size: 1.6rem;
+        font-weight: 900;
+        color: #FFFFFE;
+        letter-spacing: 1px;
     }
     .navbar-logo span {
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        background: linear-gradient(90deg, #7F5AF0, #2CB67D);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .streamfiles-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.1);
-        border: 1px solid rgba(56, 189, 248, 0.3);
+    .navbar-badge {
+        font-size: 0.8rem;
+        color: #2CB67D;
+        border: 1px solid #2CB67D;
         border-radius: 999px;
-        padding: 0.3rem 0.8rem;
-        text-decoration: none !important;
-        transition: all 0.3s ease;
-    }
-    .streamfiles-badge:hover {
-        background: rgba(56, 189, 248, 0.25);
-        border-color: #38bdf8;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+        padding: 0.2rem 0.8rem;
+        font-weight: 600;
     }
 
-    /* ---- Hero ---- */
-    .hero {
+    /* Big Front Hero Banner */
+    .hero-container {
         text-align: center;
-        padding: 1rem 0 2rem 0;
+        padding: 2rem 1rem;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 20px;
+        margin-bottom: 2rem;
     }
-    .hero h1 {
-        font-size: 2.6rem;
-        font-weight: 800;
+    .hero-logo-big {
+        font-size: 5rem;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        filter: drop-shadow(0px 0px 15px rgba(127, 90, 240, 0.8));
+    }
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 900;
         color: #FFFFFF;
-        margin-bottom: 0.4rem;
-        letter-spacing: -0.5px;
+        margin: 0;
+        letter-spacing: -1px;
     }
-    .hero h1 span {
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
+    .hero-title span {
+        background: linear-gradient(90deg, #7F5AF0, #2CB67D);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .hero p {
-        color: #94a3b8;
-        font-size: 1.05rem;
-        max-width: 500px;
-        margin: 0 auto;
+    .hero-desc {
+        color: #9CA3AF;
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
     }
 
-    /* ---- Tool Card Wrapper ---- */
+    /* Cards */
     .tool-card {
-        background: rgba(30, 41, 59, 0.5);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-    .trust-row {
-        display: flex;
-        justify-content: center;
-        gap: 1.5rem;
-        color: #64748b;
-        font-size: 0.85rem;
-        padding-bottom: 1.8rem;
-        flex-wrap: wrap;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        padding: 1.6rem;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.35);
     }
 
-    /* ---- Buttons ---- */
+    /* Custom Link Buttons */
+    .portal-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.8rem;
+        transition: all 0.3s ease;
+        text-decoration: none !important;
+    }
+    .portal-card:hover {
+        background: rgba(127,90,240,0.15);
+        border-color: #7F5AF0;
+        transform: translateY(-2px);
+    }
+    .portal-title {
+        color: #FFFFFF;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+    .portal-sub {
+        color: #9CA3AF;
+        font-size: 0.85rem;
+    }
+
+    /* Buttons */
     div.stButton > button, div.stDownloadButton > button {
-        background: linear-gradient(90deg, #0284c7, #6366f1);
+        background: linear-gradient(90deg, #7F5AF0, #2CB67D);
         color: white;
         border: none;
-        border-radius: 12px;
-        padding: 0.7rem 1.6rem;
+        border-radius: 10px;
+        padding: 0.65rem 1.4rem;
         font-weight: 600;
-        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
-        transition: all 0.25s ease;
-    }
-    div.stButton > button:hover, div.stDownloadButton > button:hover {
-        opacity: 0.95;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
-        color: white;
+        width: 100%;
     }
 
-    /* ---- File Uploader ---- */
-    [data-testid="stFileUploaderDropzone"] {
-        border-radius: 14px;
-        border: 2px dashed rgba(56, 189, 248, 0.35);
-        background: rgba(15, 23, 42, 0.6);
-        transition: all 0.3s ease;
-    }
-    [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: #38bdf8;
-        background: rgba(56, 189, 248, 0.05);
-    }
-
-    /* ---- Sidebar ---- */
+    /* Sidebar */
     section[data-testid="stSidebar"] {
-        background-color: #0b0f19;
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        background-color: #16161A;
+        border-right: 1px solid rgba(255,255,255,0.06);
     }
 
-    /* ---- Footer ---- */
     .footer-note {
         text-align: center;
-        color: #64748b;
+        color: #6B7280;
         font-size: 0.85rem;
-        padding: 2rem 0;
-    }
-    .footer-note a {
-        color: #38bdf8;
-        text-decoration: none;
+        padding-top: 2rem;
     }
     </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# ---------- Navbar with Streamfiles logo badge ----------
-st.markdown(
-    """
+# ---------- Top Navbar ----------
+st.markdown("""
     <div class="navbar">
-        <div class="navbar-logo">⚡ <span>Rays AI</span></div>
-        <a href="https://streamfiles.eu.org/" target="_blank" class="streamfiles-badge">
-            🚀 StreamFiles
-        </a>
+        <div class="navbar-logo">⚡ <span>RAYS AI</span></div>
+        <div class="navbar-badge">v2.0 PRO</div>
     </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# ---------- Hero Section ----------
-st.markdown(
-    """
-    <div class="hero">
-        <h1>Smart AI Tools <span>Fast & Free</span></h1>
-        <p>Remove backgrounds, convert documents instantly without signups or limits.</p>
+# ---------- BIG RAYS AI FRONT LOGO HEADER ----------
+st.markdown("""
+    <div class="hero-container">
+        <div class="hero-logo-big">⚡</div>
+        <div class="hero-title">RAYS <span>AI</span></div>
+        <div class="hero-desc">All-in-One Powerful Utilities & Learning Portals</div>
     </div>
-    <div class="trust-row">
-        <span>⚡ Lightning Fast</span>
-        <span>🔒 Secure & Private</span>
-        <span>🌐 100% Free Tools</span>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-# ---------- Sidebar ----------
-st.sidebar.markdown("### 🛠️ Navigation")
+# ---------- Sidebar Menu ----------
+st.sidebar.markdown("### 🛠️ Navigation Menu")
 tool = st.sidebar.radio(
     "Choose a tool",
     [
+        "🎗️ Ribbon & Diploma Slide",
+        "🔗 Study & Resource Portals",
         "🖼️ Background Remover",
         "📄 Word to PDF",
         "📝 PDF to Word",
-        "📢 Job Notifications",
-    ],
-    label_visibility="collapsed",
+        "📢 Job Notifications"
+    ]
 )
 st.sidebar.markdown("---")
-
-# Sidebar Direct Link Badge
-st.sidebar.markdown(
-    """
-    <a href="https://streamfiles.eu.org/" target="_blank" style="text-decoration:none;">
-        <div style="
-            padding: 10px; 
-            border-radius: 10px; 
-            background: rgba(56, 189, 248, 0.1); 
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            text-align: center;
-            color: #38bdf8;
-            font-weight: 600;
-            font-size: 0.85rem;
-        ">
-            🌐 Visit StreamFiles Web
-        </div>
-    </a>
-""",
-    unsafe_allow_html=True,
-)
+st.sidebar.caption("⚡ Powered by Rays AI Engine")
 
 # =========================================================
-# TOOL 1: BACKGROUND REMOVER
+# TOOL 1: RIBBON & DIPLOMA SLIDE OPTION (NEW FEATURE)
 # =========================================================
-if tool == "🖼️ Background Remover":
-  st.markdown('<div class="tool-card">', unsafe_allow_html=True)
-  st.markdown("### 🖼️ Background Remover")
-  st.markdown("Upload any photo to instantly isolate the subject.")
+if tool == "🎗️ Ribbon & Diploma Slide":
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    st.markdown("### 🎗️ Award Ribbon & Diploma Logo Slide")
+    st.markdown("View ribbon graphic elements and diploma vectors directly.")
 
-  bg_color = st.sidebar.color_picker("Background color (optional)", "#FFFFFF")
-  use_bg_color = st.sidebar.checkbox("Apply background color", value=False)
+    tab1, tab2 = st.tabs(["🎗️ Ribbon Slide Option", "🎓 Diploma Logos"])
 
-  uploaded_file = st.file_uploader(
-      "Upload an image", type=["png", "jpg", "jpeg", "webp"]
-  )
+    with tab1:
+        st.subheader("Award Ribbon Graphics Slide")
+        st.image(
+            "https://img.magnific.com/free-vector/award-ribbon_24908-54794.jpg",
+            caption="Award Ribbon Vector Source",
+            use_container_width=True
+        )
+        st.markdown("[🔗 Open Direct High-Res Image](https://img.magnific.com/free-vector/award-ribbon_24908-54794.jpg)")
 
-  if uploaded_file is not None:
-    input_image = Image.open(uploaded_file).convert("RGBA")
+    with tab2:
+        st.subheader("Diploma & Certificate Vectors")
+        st.markdown("Explore free vectors and photos for diploma designs.")
+        st.markdown("""
+            <a href="https://www.magnific.com/fr/photos-vecteurs-libre/logo-diplome/8" target="_blank" class="portal-card">
+                <div>
+                    <div class="portal-title">🎓 Magnific Logo Diplôme</div>
+                    <div class="portal-sub">Click to view free diploma photos & vector assets</div>
+                </div>
+                <div style="color:#2CB67D; font-weight:bold;">Open ↗</div>
+            </a>
+        """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-      st.caption("Original")
-      st.image(input_image, use_container_width=True)
-
-    with st.spinner("Removing background... please wait ⏳"):
-      output_image = remove(input_image)
-      if use_bg_color:
-        bg = Image.new("RGBA", output_image.size, bg_color)
-        bg.paste(output_image, (0, 0), output_image)
-        output_image = bg.convert("RGB")
-
-    with col2:
-      st.caption("Result")
-      st.image(output_image, use_container_width=True)
-
-    buf = io.BytesIO()
-    fmt = "PNG" if output_image.mode == "RGBA" else "JPEG"
-    output_image.save(buf, format=fmt)
-    st.download_button(
-        "⬇️ Download Result",
-        data=buf.getvalue(),
-        file_name=f"rays_ai_cutout.{fmt.lower()}",
-        mime=f"image/{fmt.lower()}",
-    )
-    st.success("Done! Your background has been removed.")
-  else:
-    st.info("👆 Upload an image to start processing.")
-  st.markdown("</div>", unsafe_allow_html=True)
-
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 2: WORD TO PDF
+# TOOL 2: CUSTOM WEBSITES PORTAL SLIDE (ALL USER LINKS)
+# =========================================================
+elif tool == "🔗 Study & Resource Portals":
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    st.markdown("### 🌐 Quick Access Links & Portals")
+    st.markdown("Direct portal shortcuts added for quick redirection.")
+
+    links = [
+        ("📚 StudyPanda", "https://studypanda.live/", "Live Study Platform"),
+        ("⚡ PW Thor Live", "https://pwthor.live/", "Streaming & Learning Portal"),
+        ("📖 RareStudy Portal", "https://rarestudy.in/", "Educational Resources"),
+        ("⚡ Lite PW4Free", "https://lite.pw4free.in/", "Free Learning Materials"),
+        ("🐝 StudyBee Pro", "https://studybeepro.site/", "Pro Learning Site"),
+        ("📺 Stream TestUK", "https://stream.testuk.org/", "Streaming Test Server"),
+        ("🚀 Render Cloud", "https://render.com/", "App Deployment & Hosting"),
+        ("🎨 Magnific Diploma Vectors", "https://www.magnific.com/fr/photos-vecteurs-libre/logo-diplome/8", "Diploma Logo Assets")
+    ]
+
+    for title, url, desc in links:
+        st.markdown(f"""
+            <a href="{url}" target="_blank" class="portal-card">
+                <div>
+                    <div class="portal-title">{title}</div>
+                    <div class="portal-sub">{desc}</div>
+                </div>
+                <div style="color:#7F5AF0; font-weight:bold;">Visit ↗</div>
+            </a>
+        """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# =========================================================
+# TOOL 3: BACKGROUND REMOVER
+# =========================================================
+elif tool == "🖼️ Background Remover":
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    st.markdown("### 🖼️ AI Background Remover")
+    st.markdown("Upload any photo and get an instant transparent cutout.")
+
+    bg_color = st.sidebar.color_picker("Background color (optional)", "#FFFFFF")
+    use_bg_color = st.sidebar.checkbox("Apply background color", value=False)
+
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg", "webp"])
+
+    if uploaded_file is not None:
+        input_image = Image.open(uploaded_file).convert("RGBA")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.caption("Original")
+            st.image(input_image, use_container_width=True)
+
+        with st.spinner("Removing background... please wait ⏳"):
+            output_image = remove(input_image)
+            if use_bg_color:
+                bg = Image.new("RGBA", output_image.size, bg_color)
+                bg.paste(output_image, (0, 0), output_image)
+                output_image = bg.convert("RGB")
+
+        with col2:
+            st.caption("Result")
+            st.image(output_image, use_container_width=True)
+
+        buf = io.BytesIO()
+        fmt = "PNG" if output_image.mode == "RGBA" else "JPEG"
+        output_image.save(buf, format=fmt)
+        st.download_button(
+            "⬇️ Download Result",
+            data=buf.getvalue(),
+            file_name=f"rays_ai_cutout.{fmt.lower()}",
+            mime=f"image/{fmt.lower()}",
+        )
+        st.success("Done! Background removed.")
+    else:
+        st.info("👆 Upload an image to start.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# =========================================================
+# TOOL 4: WORD TO PDF
 # =========================================================
 elif tool == "📄 Word to PDF":
-  st.markdown('<div class="tool-card">', unsafe_allow_html=True)
-  st.markdown("### 📄 Word to PDF Converter")
-  st.markdown("Convert DOCX, DOC, ODT or TXT documents to PDF.")
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    st.markdown("### 📄 Word to PDF Converter")
+    st.markdown("Convert Word, ODT, RTF, or TXT documents to PDF.")
 
-  word_file = st.file_uploader(
-      "Upload a document",
-      type=["docx", "doc", "odt", "rtf", "txt"],
-  )
+    word_file = st.file_uploader("Upload a document", type=["docx", "doc", "odt", "rtf", "txt"])
 
-  if word_file is not None:
-    if st.button("Convert to PDF"):
-      with st.spinner("Converting... please wait ⏳"):
-        with tempfile.TemporaryDirectory() as tmpdir:
-          input_path = os.path.join(tmpdir, word_file.name)
-          with open(input_path, "wb") as f:
-            f.write(word_file.getbuffer())
+    if word_file is not None:
+        if st.button("Convert to PDF"):
+            with st.spinner("Converting... ⏳"):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    input_path = os.path.join(tmpdir, word_file.name)
+                    with open(input_path, "wb") as f:
+                        f.write(word_file.getbuffer())
 
-          soffice_cmd = find_soffice()
-          if soffice_cmd:
-            try:
-              profile_dir = os.path.join(tmpdir, "lo_profile")
-              subprocess.run(
-                  [
-                      soffice_cmd,
-                      f"-env:UserInstallation=file:///{profile_dir.replace(os.sep, '/')}",
-                      "--headless",
-                      "--norestore",
-                      "--convert-to",
-                      "pdf",
-                      "--outdir",
-                      tmpdir,
-                      input_path,
-                  ],
-                  check=True,
-                  timeout=120,
-                  capture_output=True,
-                  text=True,
-              )
-              pdf_name = os.path.splitext(word_file.name)[0] + ".pdf"
-              pdf_path = os.path.join(tmpdir, pdf_name)
+                    try:
+                        soffice_cmd = find_soffice()
+                        profile_dir = os.path.join(tmpdir, "lo_profile")
+                        subprocess.run(
+                            [
+                                soffice_cmd,
+                                f"-env:UserInstallation=file:///{profile_dir.replace(os.sep, '/')}",
+                                "--headless", "--norestore",
+                                "--convert-to", "pdf",
+                                "--outdir", tmpdir, input_path,
+                            ],
+                            check=True,
+                            timeout=120,
+                            capture_output=True,
+                            text=True,
+                        )
+                        pdf_name = os.path.splitext(word_file.name)[0] + ".pdf"
+                        pdf_path = os.path.join(tmpdir, pdf_name)
 
-              with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
+                        with open(pdf_path, "rb") as f:
+                            pdf_bytes = f.read()
 
-              st.success("Done! Your PDF is ready.")
-              st.download_button(
-                  "⬇️ Download PDF",
-                  data=pdf_bytes,
-                  file_name=pdf_name,
-                  mime="application/pdf",
-              )
-            except Exception as e:
-              st.error(f"Conversion failed: {e}")
-          else:
-            st.error(
-                "LibreOffice is not installed on the server environment."
-            )
-  else:
-    st.info("👆 Upload a document to get started.")
-  st.markdown("</div>", unsafe_allow_html=True)
-
+                        st.success("Done!")
+                        st.download_button("⬇️ Download PDF", data=pdf_bytes, file_name=pdf_name, mime="application/pdf")
+                    except Exception as e:
+                        st.error(f"Conversion failed: {e}")
+    else:
+        st.info("👆 Upload a document to start.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 3: PDF TO WORD
+# TOOL 5: PDF TO WORD
 # =========================================================
 elif tool == "📝 PDF to Word":
-  st.markdown('<div class="tool-card">', unsafe_allow_html=True)
-  st.markdown("### 📝 PDF to Word Converter")
-  st.markdown("Convert PDF documents to editable DOCX format.")
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    st.markdown("### 📝 PDF to Word Converter")
+    st.markdown("Convert text-based PDFs to DOCX files.")
 
-  pdf_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+    pdf_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
-  if pdf_file is not None:
-    if st.button("Convert to Word"):
-      with st.spinner("Converting... please wait ⏳"):
-        with tempfile.TemporaryDirectory() as tmpdir:
-          input_path = os.path.join(tmpdir, pdf_file.name)
-          docx_name = os.path.splitext(pdf_file.name)[0] + ".docx"
-          docx_path = os.path.join(tmpdir, docx_name)
+    if pdf_file is not None:
+        if st.button("Convert to Word"):
+            with st.spinner("Converting... ⏳"):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    input_path = os.path.join(tmpdir, pdf_file.name)
+                    with open(input_path, "wb") as f:
+                        f.write(pdf_file.getbuffer())
 
-          with open(input_path, "wb") as f:
-            f.write(pdf_file.getbuffer())
+                    try:
+                        soffice_cmd = find_soffice()
+                        profile_dir = os.path.join(tmpdir, "lo_profile")
+                        subprocess.run(
+                            [
+                                soffice_cmd,
+                                f"-env:UserInstallation=file:///{profile_dir.replace(os.sep, '/')}",
+                                "--headless", "--norestore",
+                                "--convert-to", "docx",
+                                "--outdir", tmpdir, input_path,
+                            ],
+                            check=True,
+                            timeout=120,
+                            capture_output=True,
+                            text=True,
+                        )
+                        docx_name = os.path.splitext(pdf_file.name)[0] + ".docx"
+                        docx_path = os.path.join(tmpdir, docx_name)
 
-          converted_success = False
+                        with open(docx_path, "rb") as f:
+                            docx_bytes = f.read()
 
-          # Strategy 1: Use pdf2docx (Highly reliable Python engine)
-          if HAS_PDF2DOCX:
-            try:
-              cv = Converter(input_path)
-              cv.convert(docx_path, start=0, end=None)
-              cv.close()
-              converted_success = True
-            except Exception:
-              converted_success = False
-
-          # Strategy 2: Fallback to LibreOffice if pdf2docx fails or is missing
-          if not converted_success:
-            soffice_cmd = find_soffice()
-            if soffice_cmd:
-              try:
-                profile_dir = os.path.join(tmpdir, "lo_profile")
-                subprocess.run(
-                    [
-                        soffice_cmd,
-                        f"-env:UserInstallation=file:///{profile_dir.replace(os.sep, '/')}",
-                        "--headless",
-                        "--norestore",
-                        "--convert-to",
-                        "docx",
-                        "--outdir",
-                        tmpdir,
-                        input_path,
-                    ],
-                    check=True,
-                    timeout=120,
-                    capture_output=True,
-                    text=True,
-                )
-                converted_success = True
-              except Exception:
-                converted_success = False
-
-          if converted_success and os.path.exists(docx_path):
-            with open(docx_path, "rb") as f:
-              docx_bytes = f.read()
-
-            st.success("Done! Your Word document is ready.")
-            st.download_button(
-                "⬇️ Download Word File",
-                data=docx_bytes,
-                file_name=docx_name,
-                mime=(
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                ),
-            )
-          else:
-            st.error(
-                "Conversion failed. Please ensure the PDF is text-based or try"
-                " installing `pdf2docx` in your requirements.txt."
-            )
-  else:
-    st.info("👆 Upload a PDF to get started.")
-  st.markdown("</div>", unsafe_allow_html=True)
-
+                        st.success("Done!")
+                        st.download_button("⬇️ Download Word Document", data=docx_bytes, file_name=docx_name, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                    except Exception as e:
+                        st.error(f"Conversion failed: {e}")
+    else:
+        st.info("👆 Upload a PDF to start.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 4: JOB NOTIFICATIONS
+# TOOL 6: JOB NOTIFICATIONS
 # =========================================================
 elif tool == "📢 Job Notifications":
-  st.markdown('<div class="tool-card">', unsafe_allow_html=True)
-  st.markdown("### 📢 Govt Job Notifications")
-  st.markdown(
-      "Quick access to top government recruitment portals and updates."
-  )
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    st.markdown("### 📢 Govt Job Notifications")
+    
+    job_sources = [
+        ("🏛️", "Sarkari Result", "https://www.sarkariresult.com"),
+        ("📋", "Employment News", "https://www.employmentnews.gov.in"),
+        ("🎯", "SSC Official Portal", "https://ssc.nic.in"),
+        ("🏦", "IBPS Portal", "https://www.ibps.in"),
+    ]
 
-  job_sources = [
-      (
-          "🏛️",
-          "Sarkari Result",
-          "Latest results, admit cards & job alerts",
-          "https://www.sarkariresult.com",
-      ),
-      (
-          "📋",
-          "Employment News",
-          "Official Govt of India employment paper",
-          "https://www.employmentnews.gov.in",
-      ),
-      (
-          "🎯",
-          "SSC Board",
-          "Staff Selection Commission portal",
-          "https://ssc.nic.in",
-      ),
-      ("🏦", "IBPS", "Bank recruitment & results portal", "https://www.ibps.in"),
-      (
-          "🚂",
-          "RRB Board",
-          "Railway Recruitment Board",
-          "https://www.rrbcdg.gov.in",
-      ),
-      (
-          "📝",
-          "UPSC",
-          "Civil Services & Defence exam alerts",
-          "https://upsc.gov.in",
-      ),
-  ]
-
-  for icon, name, desc, url in job_sources:
-    st.markdown(
-        f"""
-            <a href="{url}" target="_blank" style="text-decoration:none;">
-                <div style="
-                    display:flex; align-items:center; gap:1rem;
-                    background: rgba(15, 23, 42, 0.6);
-                    border: 1px solid rgba(255,255,255,0.06);
-                    border-radius: 12px;
-                    padding: 0.9rem 1.1rem;
-                    margin-bottom: 0.7rem;
-                    transition: border-color 0.3s ease;
-                ">
-                    <div style="font-size:1.6rem;">{icon}</div>
-                    <div>
-                        <div style="color:#FFFFFF; font-weight:600;">{name}</div>
-                        <div style="color:#94a3b8; font-size:0.85rem;">{desc}</div>
-                    </div>
+    for icon, name, url in job_sources:
+        st.markdown(f"""
+            <a href="{url}" target="_blank" class="portal-card">
+                <div>
+                    <div class="portal-title">{icon} {name}</div>
                 </div>
+                <div style="color:#2CB67D;">Visit ↗</div>
             </a>
-        """,
-        unsafe_allow_html=True,
-    )
+        """, unsafe_allow_html=True)
 
-  st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Footer
-st.markdown(
-    """
-    <div class="footer-note">
-        Powered by <a href="https://streamfiles.eu.org/" target="_blank">StreamFiles</a> &nbsp;•&nbsp; Rays AI © 2026
-    </div>
-""",
-    unsafe_allow_html=True,
-)
+# ---------- Footer ----------
+st.markdown('<div class="footer-note">Powered by ⚡ Rays AI Suite • 2026</div>', unsafe_allow_html=True)
