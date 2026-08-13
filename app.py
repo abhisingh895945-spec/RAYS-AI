@@ -298,8 +298,8 @@ st.sidebar.markdown("### 🛠️ Navigation Menu")
 tool = st.sidebar.radio(
     "Choose a tool",
     [
-        "⭕ Circle Logo Hub",
-        "🔗 Study & Resource Portals",
+        "⭕ Logo Hub",
+        "🔗 Study Portals",
         "🖼️ Background Remover",
         "📄 Word to PDF",
         "📝 PDF to Word",
@@ -319,7 +319,7 @@ if tool == "⭕ Circle Logo Hub":
 
     st.markdown("""
         <div class="circle-card-container">
-            <a href="https://www.magnific.com/fr/photos-vecteurs-libre/logo-diplome/8" target="_blank" class="circle-logobox">
+            <a href="https://www.youtube.com/@ArcRays" target="_blank" class="circle-logobox">
                 <div class="circle-icon">🎓</div>
                 <div class="circle-label">Diploma Logos</div>
             </a>
@@ -339,7 +339,7 @@ if tool == "⭕ Circle Logo Hub":
                 <div class="circle-icon">🐝</div>
                 <div class="circle-label">StudyBee</div>
             </a>
-            <a href="https://render.com/" target="_blank" class="circle-logobox">
+            <a href="https://chatgpt.com/" target="_blank" class="circle-logobox">
                 <div class="circle-icon">🚀</div>
                 <div class="circle-label">Render</div>
             </a>
