@@ -31,43 +31,45 @@ except ImportError:
     HAS_PYPDF = False
 
 
-# ---------- Helper: call Claude AI API (FIXED 400 ERROR) ----------
+# ---------- Helper: call Gemini AI API (100% FREE) ----------
 def call_claude(prompt, system=None, max_tokens=1500):
-    """Send a prompt to Claude and return the text response."""
-    api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
+    """Send a prompt to Google Gemini API (Free Tier)."""
+    api_key = st.secrets.get("GEMINI_API_KEY", "")
     if not api_key:
-        return None, "AI features are not set up yet (missing ANTHROPIC_API_KEY in secrets)."
+        return None, "AI features setup nahi hain (secrets.toml mein GEMINI_API_KEY missing hai)."
 
-    headers = {
-        "x-api-key": api_key.strip(),
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key.strip()}"
+    
+    headers = {"Content-Type": "application/json"}
     
     body = {
-        "model": "claude-3-5-sonnet-20241022",
-        "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": prompt}],
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "maxOutputTokens": max_tokens
+        }
     }
     
     if system and system.strip():
-        body["system"] = system.strip()
+        body["systemInstruction"] = {
+            "parts": [{"text": system.strip()}]
+        }
 
     try:
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers=headers,
-            json=body,
-            timeout=60,
-        )
+        resp = requests.post(url, headers=headers, json=body, timeout=60)
         
         if resp.status_code != 200:
             error_details = resp.json().get("error", {}).get("message", resp.text)
             return None, f"API Error ({resp.status_code}): {error_details}"
 
         data = resp.json()
-        text = "".join(block.get("text", "") for block in data.get("content", []))
-        return text, None
+        candidates = data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            text = "".join(p.get("text", "") for p in parts)
+            return text, None
+        return None, "No response generated from AI."
     except Exception as e:
         return None, str(e)
 
