@@ -32,6 +32,35 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ---------- Simple password gate ----------
+def check_password():
+    """Show a password box; only let the rest of the app render if correct."""
+
+    def password_entered():
+        if st.session_state.get("password_input") == st.secrets.get("APP_PASSWORD", ""):
+            st.session_state["password_correct"] = True
+            del st.session_state["password_input"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if st.session_state.get("password_correct", False):
+        return True
+
+    st.markdown("### ⚡ Rays AI")
+    st.text_input(
+        "Enter password to continue",
+        type="password",
+        key="password_input",
+        on_change=password_entered,
+    )
+    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+        st.error("Incorrect password.")
+    return False
+
+if not check_password():
+    st.stop()
+
+
 # ---------- Custom professional theme (CSS) ----------
 st.markdown("""
     <style>
