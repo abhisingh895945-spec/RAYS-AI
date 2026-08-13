@@ -30,79 +30,53 @@ try:
 except ImportError:
     HAS_PYPDF = False
 
-# Google Generative AI Library Import
-try:
-    import google.generativeai as genai
-    HAS_GEMINI_LIB = True
-except ImportError:
-    HAS_GEMINI_LIB = False
 
-
-# ---------- Helper: Universal Google Gemini AI Call (100% ERROR-FREE) ----------
+# ---------- Helper: Universal AI Call via OpenRouter (100% FREE & FAST) ----------
 def call_claude(prompt, system=None, max_tokens=1500):
-    """Send a prompt to Google Gemini API with multi-level fallback mechanism."""
-    api_key = st.secrets.get("GEMINI_API_KEY", "").strip()
+    """Send a prompt to OpenRouter API using free open-source models."""
+    api_key = st.secrets.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
-        return None, "AI features setup nahi hain (secrets.toml mein GEMINI_API_KEY missing hai)."
+        return None, "AI features setup nahi hain (secrets.toml mein OPENROUTER_API_KEY missing hai)."
 
-    # Method 1: Try using official google-generativeai library if available
-    if HAS_GEMINI_LIB:
-        try:
-            genai.configure(api_key=api_key)
-            
-            # List of stable supported models
-            models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
-            
-            for model_name in models_to_try:
-                try:
-                    if system and system.strip():
-                        model = genai.GenerativeModel(
-                            model_name=model_name,
-                            system_instruction=system.strip()
-                        )
-                    else:
-                        model = genai.GenerativeModel(model_name=model_name)
-                    
-                    response = model.generate_content(prompt)
-                    if response and response.text:
-                        return response.text, None
-                except Exception:
-                    continue
-        except Exception:
-            pass
-
-    # Method 2: HTTP Direct REST Fallback (Works everywhere without library)
-    headers = {"Content-Type": "application/json"}
-    
-    # Endpoints list for robust fallback
-    endpoints = [
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}",
-        f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}",
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
-    ]
-
-    combined_prompt = f"System Instruction: {system}\n\nUser Request: {prompt}" if system else prompt
-
-    body = {
-        "contents": [{
-            "parts": [{"text": combined_prompt}]
-        }],
-        "generationConfig": {
-            "maxOutputTokens": max_tokens
-        }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://streamlit.io",
+        "X-Title": "Rays AI Suite"
     }
 
+    # OpenRouter Free Models to try in fallback order
+    free_models = [
+        "meta-llama/llama-3.1-8b-instruct:free",
+        "mistralai/mistral-7b-instruct:free",
+        "google/gemma-2-9b-it:free"
+    ]
+
+    messages = []
+    if system and system.strip():
+        messages.append({"role": "system", "content": system.strip()})
+    messages.append({"role": "user", "content": prompt})
+
     last_error = ""
-    for url in endpoints:
+    for model_name in free_models:
+        body = {
+            "model": model_name,
+            "messages": messages,
+            "max_tokens": max_tokens
+        }
+
         try:
-            resp = requests.post(url, headers=headers, json=body, timeout=30)
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=body,
+                timeout=30
+            )
             if resp.status_code == 200:
                 data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    text = "".join(p.get("text", "") for p in parts)
+                choices = data.get("choices", [])
+                if choices:
+                    text = choices[0].get("message", {}).get("content", "")
                     if text:
                         return text, None
             else:
@@ -110,7 +84,7 @@ def call_claude(prompt, system=None, max_tokens=1500):
         except Exception as e:
             last_error = str(e)
 
-    return None, f"Gemini API Error: {last_error if last_error else 'Unable to connect to Gemini models.'}"
+    return None, f"OpenRouter API Error: {last_error if last_error else 'Unable to connect to OpenRouter models.'}"
 
 
 # ---------- Helper: Extract Text from PDF ----------
