@@ -5,3 +5,4 @@ requests
 opencv-python-headless
 gTTS
 pypdf
+google-generativeai
