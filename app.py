@@ -31,7 +31,7 @@ except ImportError:
     HAS_PYPDF = False
 
 
-# ---------- Helper: call Claude AI API ----------
+# ---------- Helper: call Claude AI API (FIXED 400 ERROR) ----------
 def call_claude(prompt, system=None, max_tokens=1500):
     """Send a prompt to Claude and return the text response."""
     api_key = st.secrets.get("ANTHROPIC_API_KEY", "")
@@ -39,18 +39,19 @@ def call_claude(prompt, system=None, max_tokens=1500):
         return None, "AI features are not set up yet (missing ANTHROPIC_API_KEY in secrets)."
 
     headers = {
-        "x-api-key": api_key,
+        "x-api-key": api_key.strip(),
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    # Correct Anthropic Model Name
+    
     body = {
         "model": "claude-3-5-sonnet-20241022",
         "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": prompt}],
     }
-    if system:
-        body["system"] = system
+    
+    if system and system.strip():
+        body["system"] = system.strip()
 
     try:
         resp = requests.post(
@@ -59,7 +60,11 @@ def call_claude(prompt, system=None, max_tokens=1500):
             json=body,
             timeout=60,
         )
-        resp.raise_for_status()
+        
+        if resp.status_code != 200:
+            error_details = resp.json().get("error", {}).get("message", resp.text)
+            return None, f"API Error ({resp.status_code}): {error_details}"
+
         data = resp.json()
         text = "".join(block.get("text", "") for block in data.get("content", []))
         return text, None
@@ -623,7 +628,7 @@ elif tool == "💬 Doubt Solver":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 7: TEXT-TO-IMAGE GENERATOR (NEW)
+# TOOL 7: TEXT-TO-IMAGE GENERATOR
 # =========================================================
 elif tool == "🎨 Text-to-Image Generator":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -664,7 +669,7 @@ elif tool == "🎨 Text-to-Image Generator":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 8: TEXT & PDF SUMMARIZER (NEW)
+# TOOL 8: TEXT & PDF SUMMARIZER
 # =========================================================
 elif tool == "📝 Text & PDF Summarizer":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -706,7 +711,7 @@ elif tool == "📝 Text & PDF Summarizer":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 9: LANGUAGE TRANSLATOR (NEW)
+# TOOL 9: LANGUAGE TRANSLATOR
 # =========================================================
 elif tool == "🌐 Language Translator":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -737,7 +742,7 @@ elif tool == "🌐 Language Translator":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 10: TEXT-TO-VOICE (TTS) (NEW)
+# TOOL 10: TEXT-TO-VOICE (TTS)
 # =========================================================
 elif tool == "🔊 Text-to-Voice (TTS)":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -775,7 +780,7 @@ elif tool == "🔊 Text-to-Voice (TTS)":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 11: RESUME / CV ANALYZER (NEW)
+# TOOL 11: RESUME / CV ANALYZER
 # =========================================================
 elif tool == "📄 Resume / CV Analyzer":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -819,7 +824,7 @@ Provide analysis in the following exact format:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 12: FACE DETECTION (NEW)
+# TOOL 12: FACE DETECTION
 # =========================================================
 elif tool == "👤 Face Detection":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -845,7 +850,6 @@ elif tool == "👤 Face Detection":
                 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-                # Draw green boxes around faces
                 for (x, y, w, h) in faces:
                     cv2.rectangle(img_np, (x, y), (x+w, y+h), (0, 255, 125), 3)
 
