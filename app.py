@@ -32,9 +32,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------- Simple password gate ----------
+# ---------- Simple password gate (styled as a welcome screen) ----------
 def check_password():
-    """Show a password box; only let the rest of the app render if correct."""
+    """Show a branded welcome + password box; only let the rest of the app render if correct."""
 
     def password_entered():
         if st.session_state.get("password_input") == st.secrets.get("APP_PASSWORD", ""):
@@ -46,15 +46,55 @@ def check_password():
     if st.session_state.get("password_correct", False):
         return True
 
-    st.markdown("### ⚡ Rays AI")
-    st.text_input(
-        "Enter password to continue",
-        type="password",
-        key="password_input",
-        on_change=password_entered,
-    )
-    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
-        st.error("Incorrect password.")
+    st.markdown("""
+        <style>
+        .stApp {
+            background: radial-gradient(circle at top, #1a1a2e 0%, #0F0F13 65%);
+        }
+        .welcome-wrap {
+            text-align: center;
+            padding-top: 4rem;
+        }
+        .welcome-logo {
+            font-size: 3.2rem;
+            margin-bottom: 0.3rem;
+        }
+        .welcome-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #FFFFFE;
+            margin-bottom: 0.2rem;
+        }
+        .welcome-title span {
+            background: linear-gradient(90deg, #7F5AF0, #2CB67D);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .welcome-sub {
+            color: #9CA3AF;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+        </style>
+        <div class="welcome-wrap">
+            <div class="welcome-logo">⚡</div>
+            <div class="welcome-title">Welcome to <span>Rays AI</span></div>
+            <div class="welcome-sub">Enter password to continue</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.text_input(
+            "Password",
+            type="password",
+            key="password_input",
+            on_change=password_entered,
+            label_visibility="collapsed",
+            placeholder="Enter password",
+        )
+        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+            st.error("Incorrect password.")
     return False
 
 if not check_password():
