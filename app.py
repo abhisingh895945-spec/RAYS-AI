@@ -184,6 +184,44 @@ st.markdown("""
         box-shadow: 0 8px 30px rgba(0,0,0,0.35);
     }
 
+    /* Circle Logobox Design Theme */
+    .circle-card-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: center;
+        padding: 1rem 0;
+    }
+    .circle-logobox {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(127,90,240,0.15), rgba(44,182,125,0.15));
+        border: 2px solid #7F5AF0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        text-decoration: none !important;
+        box-shadow: 0 0 15px rgba(127,90,240,0.2);
+    }
+    .circle-logobox:hover {
+        transform: scale(1.08);
+        border-color: #2CB67D;
+        box-shadow: 0 0 25px rgba(44,182,125,0.4);
+    }
+    .circle-icon {
+        font-size: 2.2rem;
+        margin-bottom: 0.2rem;
+    }
+    .circle-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        text-align: center;
+    }
+
     /* Custom Link Buttons */
     .portal-card {
         display: flex;
@@ -260,7 +298,7 @@ st.sidebar.markdown("### 🛠️ Navigation Menu")
 tool = st.sidebar.radio(
     "Choose a tool",
     [
-        "🎗️ Ribbon & Diploma Slide",
+        "⭕ Circle Logo Hub",
         "🔗 Study & Resource Portals",
         "🖼️ Background Remover",
         "📄 Word to PDF",
@@ -272,41 +310,46 @@ st.sidebar.markdown("---")
 st.sidebar.caption("⚡ Powered by Rays AI Engine")
 
 # =========================================================
-# TOOL 1: RIBBON & DIPLOMA SLIDE OPTION (NEW FEATURE)
+# TOOL 1: CIRCLE LOGOBOX HUB (NEW CIRCULAR THEME SLIDE)
 # =========================================================
-if tool == "🎗️ Ribbon & Diploma Slide":
+if tool == "⭕ Circle Logo Hub":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
-    st.markdown("### 🎗️ Award Ribbon & Diploma Logo Slide")
-    st.markdown("View ribbon graphic elements and diploma vectors directly.")
+    st.markdown("### ⭕ Circle Logobox Dashboard")
+    st.markdown("Quick access circular icons for major portals and design assets.")
 
-    tab1, tab2 = st.tabs(["🎗️ Ribbon Slide Option", "🎓 Diploma Logos"])
-
-    with tab1:
-        st.subheader("Award Ribbon Graphics Slide")
-        st.image(
-            "https://img.magnific.com/free-vector/award-ribbon_24908-54794.jpg",
-            caption="Award Ribbon Vector Source",
-            use_container_width=True
-        )
-        st.markdown("[🔗 Open Direct High-Res Image](https://img.magnific.com/free-vector/award-ribbon_24908-54794.jpg)")
-
-    with tab2:
-        st.subheader("Diploma & Certificate Vectors")
-        st.markdown("Explore free vectors and photos for diploma designs.")
-        st.markdown("""
-            <a href="https://www.magnific.com/fr/photos-vecteurs-libre/logo-diplome/8" target="_blank" class="portal-card">
-                <div>
-                    <div class="portal-title">🎓 Magnific Logo Diplôme</div>
-                    <div class="portal-sub">Click to view free diploma photos & vector assets</div>
-                </div>
-                <div style="color:#2CB67D; font-weight:bold;">Open ↗</div>
+    st.markdown("""
+        <div class="circle-card-container">
+            <a href="https://www.magnific.com/fr/photos-vecteurs-libre/logo-diplome/8" target="_blank" class="circle-logobox">
+                <div class="circle-icon">🎓</div>
+                <div class="circle-label">Diploma Logos</div>
             </a>
-        """, unsafe_allow_html=True)
+            <a href="https://studypanda.live/" target="_blank" class="circle-logobox">
+                <div class="circle-icon">📚</div>
+                <div class="circle-label">StudyPanda</div>
+            </a>
+            <a href="https://pwthor.live/" target="_blank" class="circle-logobox">
+                <div class="circle-icon">⚡</div>
+                <div class="circle-label">PW Thor</div>
+            </a>
+            <a href="https://rarestudy.in/" target="_blank" class="circle-logobox">
+                <div class="circle-icon">📖</div>
+                <div class="circle-label">RareStudy</div>
+            </a>
+            <a href="https://studybeepro.site/" target="_blank" class="circle-logobox">
+                <div class="circle-icon">🐝</div>
+                <div class="circle-label">StudyBee</div>
+            </a>
+            <a href="https://render.com/" target="_blank" class="circle-logobox">
+                <div class="circle-icon">🚀</div>
+                <div class="circle-label">Render</div>
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 2: CUSTOM WEBSITES PORTAL SLIDE (ALL USER LINKS)
+# TOOL 2: CUSTOM WEBSITES PORTAL SLIDE
 # =========================================================
 elif tool == "🔗 Study & Resource Portals":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
@@ -338,7 +381,7 @@ elif tool == "🔗 Study & Resource Portals":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 3: BACKGROUND REMOVER
+# TOOL 3: BACKGROUND REMOVER (UNTOUCHED & FULLY FUNCTIONAL)
 # =========================================================
 elif tool == "🖼️ Background Remover":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
