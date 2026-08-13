@@ -1,5 +1,7 @@
 streamlit
 rembg
 pillow
-onnxruntime
 requests
+opencv-python-headless
+gTTS
+pypdf
