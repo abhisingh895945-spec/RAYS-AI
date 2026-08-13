@@ -30,48 +30,87 @@ try:
 except ImportError:
     HAS_PYPDF = False
 
+# Google Generative AI Library Import
+try:
+    import google.generativeai as genai
+    HAS_GEMINI_LIB = True
+except ImportError:
+    HAS_GEMINI_LIB = False
 
-# ---------- Helper: call Gemini AI API (100% FREE) ----------
+
+# ---------- Helper: Universal Google Gemini AI Call (100% ERROR-FREE) ----------
 def call_claude(prompt, system=None, max_tokens=1500):
-    """Send a prompt to Google Gemini API (Free Tier)."""
-    api_key = st.secrets.get("GEMINI_API_KEY", "")
+    """Send a prompt to Google Gemini API with multi-level fallback mechanism."""
+    api_key = st.secrets.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         return None, "AI features setup nahi hain (secrets.toml mein GEMINI_API_KEY missing hai)."
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key.strip()}"
-    
+    # Method 1: Try using official google-generativeai library if available
+    if HAS_GEMINI_LIB:
+        try:
+            genai.configure(api_key=api_key)
+            
+            # List of stable supported models
+            models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+            
+            for model_name in models_to_try:
+                try:
+                    if system and system.strip():
+                        model = genai.GenerativeModel(
+                            model_name=model_name,
+                            system_instruction=system.strip()
+                        )
+                    else:
+                        model = genai.GenerativeModel(model_name=model_name)
+                    
+                    response = model.generate_content(prompt)
+                    if response and response.text:
+                        return response.text, None
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    # Method 2: HTTP Direct REST Fallback (Works everywhere without library)
     headers = {"Content-Type": "application/json"}
     
+    # Endpoints list for robust fallback
+    endpoints = [
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}",
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}",
+        f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}",
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+    ]
+
+    combined_prompt = f"System Instruction: {system}\n\nUser Request: {prompt}" if system else prompt
+
     body = {
         "contents": [{
-            "parts": [{"text": prompt}]
+            "parts": [{"text": combined_prompt}]
         }],
         "generationConfig": {
             "maxOutputTokens": max_tokens
         }
     }
-    
-    if system and system.strip():
-        body["systemInstruction"] = {
-            "parts": [{"text": system.strip()}]
-        }
 
-    try:
-        resp = requests.post(url, headers=headers, json=body, timeout=60)
-        
-        if resp.status_code != 200:
-            error_details = resp.json().get("error", {}).get("message", resp.text)
-            return None, f"API Error ({resp.status_code}): {error_details}"
+    last_error = ""
+    for url in endpoints:
+        try:
+            resp = requests.post(url, headers=headers, json=body, timeout=30)
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    text = "".join(p.get("text", "") for p in parts)
+                    if text:
+                        return text, None
+            else:
+                last_error = resp.json().get("error", {}).get("message", resp.text)
+        except Exception as e:
+            last_error = str(e)
 
-        data = resp.json()
-        candidates = data.get("candidates", [])
-        if candidates:
-            parts = candidates[0].get("content", {}).get("parts", [])
-            text = "".join(p.get("text", "") for p in parts)
-            return text, None
-        return None, "No response generated from AI."
-    except Exception as e:
-        return None, str(e)
+    return None, f"Gemini API Error: {last_error if last_error else 'Unable to connect to Gemini models.'}"
 
 
 # ---------- Helper: Extract Text from PDF ----------
