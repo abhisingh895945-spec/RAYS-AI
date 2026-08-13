@@ -298,8 +298,8 @@ st.sidebar.markdown("### 🛠️ Navigation Menu")
 tool = st.sidebar.radio(
     "Choose a tool",
     [
-        "⭕ Logo Hub",
-        "🔗 Study Portals",
+        "⭕ Circle Logo Hub",
+        "🔗 Study & Resource Portals",
         "🖼️ Background Remover",
         "📄 Word to PDF",
         "📝 PDF to Word",
@@ -310,19 +310,15 @@ st.sidebar.markdown("---")
 st.sidebar.caption("⚡ Powered by Rays AI Engine")
 
 # =========================================================
-# TOOL 1: CIRCLE LOGOBOX HUB (NEW CIRCULAR THEME SLIDE)
+# TOOL 1: CIRCLE LOGOBOX HUB
 # =========================================================
 if tool == "⭕ Circle Logo Hub":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
     st.markdown("### ⭕ Circle Logobox Dashboard")
-    st.markdown("Quick access circular icons for major portals and design assets.")
+    st.markdown("Quick access circular icons for major portals.")
 
     st.markdown("""
         <div class="circle-card-container">
-            <a href="https://www.youtube.com/@ArcRays" target="_blank" class="circle-logobox">
-                <div class="circle-icon">🎓</div>
-                <div class="circle-label">Diploma Logos</div>
-            </a>
             <a href="https://studypanda.live/" target="_blank" class="circle-logobox">
                 <div class="circle-icon">📚</div>
                 <div class="circle-label">StudyPanda</div>
@@ -338,10 +334,6 @@ if tool == "⭕ Circle Logo Hub":
             <a href="https://studybeepro.site/" target="_blank" class="circle-logobox">
                 <div class="circle-icon">🐝</div>
                 <div class="circle-label">StudyBee</div>
-            </a>
-            <a href="https://chatgpt.com/" target="_blank" class="circle-logobox">
-                <div class="circle-icon">🚀</div>
-                <div class="circle-label">Render</div>
             </a>
         </div>
     """, unsafe_allow_html=True)
@@ -363,8 +355,6 @@ elif tool == "🔗 Study & Resource Portals":
         ("⚡ Lite PW4Free", "https://lite.pw4free.in/", "Free Learning Materials"),
         ("🐝 StudyBee Pro", "https://studybeepro.site/", "Pro Learning Site"),
         ("📺 Stream TestUK", "https://stream.testuk.org/", "Streaming Test Server"),
-        ("🚀 Render Cloud", "https://render.com/", "App Deployment & Hosting"),
-        ("🎨 Magnific Diploma Vectors", "https://www.magnific.com/fr/photos-vecteurs-libre/logo-diplome/8", "Diploma Logo Assets")
     ]
 
     for title, url, desc in links:
@@ -381,7 +371,7 @@ elif tool == "🔗 Study & Resource Portals":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# TOOL 3: BACKGROUND REMOVER (UNTOUCHED & FULLY FUNCTIONAL)
+# TOOL 3: BACKGROUND REMOVER
 # =========================================================
 elif tool == "🖼️ Background Remover":
     st.markdown('<div class="tool-card">', unsafe_allow_html=True)
